@@ -117,6 +117,26 @@ fn first_domain(q: &str) -> Option<String> {
         .find(|w| valid_domain(w))
 }
 
+/// Сколько целей проверяем за раз, как и `MAX_BATCH` в `tools/arsenal.py`.
+const MAX_BATCH: usize = 10;
+
+/// Домены и IP из команды, без повторов. Адрес внутри ссылки целью не считается.
+fn batch_targets(q: &str) -> Vec<String> {
+    let mut targets: Vec<String> = Vec::new();
+    for word in q.split(|c: char| c.is_whitespace() || c == ',' || c == ';') {
+        let word = word.trim_matches(|c: char| ":!?«»\"'()".contains(c)).trim_end_matches('.').to_lowercase();
+        if (word.parse::<IpAddr>().is_ok_and(|ip| public_ip(&ip)) || (valid_domain(&word) && word.parse::<IpAddr>().is_err())) && !targets.contains(&word) {
+            targets.push(word);
+        }
+    }
+    targets
+}
+
+/// Инструмент сам отдаёт короткую строку: отвечаем ею, модель не нужна и цель к ней не уходит.
+pub fn is_report(tool: &str) -> bool {
+    matches!(tool, "domain" | "ip" | "headers" | "wayback" | "links" | "tables" | "urlcheck" | "hash" | "dorks" | "batch" | "save_report")
+}
+
 fn arsenal(tool: &'static str, target: impl Into<String>) -> Option<Skill> {
     Some(Skill::Arsenal { tool, target: target.into() })
 }
@@ -124,6 +144,18 @@ fn arsenal(tool: &'static str, target: impl Into<String>) -> Option<Skill> {
 /// Запросы к арсеналу osint-kit и public-tools.
 fn parse_arsenal(q: &str, low: &str) -> Option<Skill> {
     let has = |keys: &[&str]| keys.iter().any(|k| low.contains(k));
+    if has(&["збережи звіт", "збережи результат", "сохрани отч", "сохрани результат"]) {
+        return arsenal("save_report", "last");
+    }
+    if has(&["перевір", "провер", "домени", "домены", "адреси", "адреса", "список", "whois"]) {
+        let targets = batch_targets(q);
+        if targets.len() > MAX_BATCH {
+            return Some(Skill::Explain("за раз перевіряю до 10 цілей. Скороти список."));
+        }
+        if targets.len() >= 2 {
+            return arsenal("batch", targets.join(" "));
+        }
+    }
     if let Some(url) = first_url(q) {
         if has(&["заголов", "редирект", "headers"]) { return arsenal("headers", url); }
         if has(&["посилання зі", "посилання з", "ссылки с", "контакти", "контакты"]) { return arsenal("links", url); }
@@ -286,6 +318,7 @@ const HELP_TEXT: &str = "Комп'ютер: відкрий ютуб, відкр�
 Повідомлення: напиши @нік привіт, напиши щось @нік, запам'ятай контакт Саша @нік, подзвони Саші
 Discord: запам'ятай войс друзі <посилання>, зайди в войс друзі
 Час: таймер на 5 хвилин, нагадай через 10 хвилин подзвонити
+Перевірка: перевір example.com і 8.8.8.8, whois example.com, заголовки <посилання>, збережи звіт
 Пошук: знайди рецепт борщу, погода у Києві, прочитай <посилання>, whois example.com, перевір впн
 Екран і фото: що на екрані, кнопка Фото
 Про комп'ютер: який процесор, скільки оперативки, заряд батареї, скільки місця
@@ -1385,7 +1418,10 @@ async fn run_arsenal(tool: &str, target: &str, incognito: bool) -> Result<String
     let v: Value = serde_json::from_slice(&out.stdout).map_err(|_| "незрозуміла відповідь інструмента".to_string())?;
     let text = v["text"].as_str().unwrap_or("").to_string();
     if v["ok"].as_bool().unwrap_or(false) {
-        Ok(format!("{}\n{text}", v["title"].as_str().unwrap_or("")))
+        match v["summary"].as_str() {
+            Some(summary) => Ok(format!("{summary}\n\n{text}")),
+            None => Ok(format!("{}\n{text}", v["title"].as_str().unwrap_or(""))),
+        }
     } else {
         Err(text)
     }
@@ -1664,6 +1700,11 @@ mod tests {
         assert_eq!(parse("перевір ip 8.8.8.8"), Some(Skill::Arsenal { tool: "ip", target: "8.8.8.8".into() }));
         assert_eq!(parse("перевір ip 192.168.1.1"), Some(Skill::IpInfo("192.168.1.1".parse().unwrap())));
         assert_eq!(parse("whois example.com"), Some(Skill::Arsenal { tool: "domain", target: "example.com".into() }));
+        assert_eq!(parse("перевір example.com, iana.org і 8.8.8.8"), Some(Skill::Arsenal { tool: "batch", target: "example.com iana.org 8.8.8.8".into() }));
+        assert_eq!(parse("домени example.com example.com"), Some(Skill::Arsenal { tool: "domain", target: "example.com".into() }));
+        assert_eq!(parse("перевір 192.168.1.1 і 10.0.0.1"), Some(Skill::IpInfo("192.168.1.1".parse().unwrap())));
+        assert!(matches!(parse("перевір a.com b.com c.com d.com e.com f.com g.com h.com i.com j.com k.com"), Some(Skill::Explain(_))));
+        assert_eq!(parse("збережи звіт"), Some(Skill::Arsenal { tool: "save_report", target: "last".into() }));
         assert_eq!(parse("dns example.com"), Some(Skill::Domain("example.com".into())));
         assert_eq!(parse("заголовки https://example.com/a"), Some(Skill::Arsenal { tool: "headers", target: "https://example.com/a".into() }));
         assert_eq!(parse("запусти відео про космос"), Some(Skill::PlayVideo("про космос".into())));
