@@ -8,6 +8,11 @@ command -v uv >/dev/null || { echo "Потрібен uv: brew install uv"; exit 
 tools() {
   [ -x vendor/osint-kit/.venv/bin/python ] || uv venv vendor/osint-kit/.venv --python 3.12
   uv pip install --python vendor/osint-kit/.venv/bin/python -e vendor/osint-kit
+  # Своє сховище справ, щоб не конфліктувати з окремо встановленим osint-kit.
+  if [ ! -f vendor/osint-kit/config.toml ]; then
+    mkdir -p "$HOME/Library/Application Support/yuna"
+    printf '[general]\nvault_image = "~/Library/Application Support/yuna/cases.sparsebundle"\n' > vendor/osint-kit/config.toml
+  fi
   echo "✔ Інструменти OSINT встановлено"
 }
 
