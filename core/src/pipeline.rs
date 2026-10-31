@@ -300,7 +300,9 @@ impl Engine {
                 None => None,
             };
             let was_confirmed = confirmed.is_some();
-            if let Some(skill) = confirmed.or_else(|| crate::skills::parse(&job.question)) {
+            let direct = confirmed.or_else(|| crate::skills::parse(&job.question));
+            let guessed = if direct.is_none() { self.guess_command(job).await } else { None };
+            if let Some(skill) = direct.or(guessed) {
                 if !cfg.pc_control && crate::skills::touches_pc(&skill) {
                     return Some(Reply { text: "Керування комп'ютером вимкнено. Увімкнути: PC_CONTROL=true у .env.".into(), emotion: Emotion::Neutral, outfit: None });
                 }
@@ -411,6 +413,19 @@ impl Engine {
     }
 
     /// Придумывает текст сообщения. Он сразу уходит человеку, поэтому при сбое лучше не отправить ничего.
+    /// Правила не поняли фразу: модель переводит её в команду из списка, а выполняет код.
+    /// В инкогнито слова в модель не отправляем, при любой неудаче остаётся обычный разговор.
+    async fn guess_command(&self, job: &ReplyJob) -> Option<crate::skills::Skill> {
+        if self.llm.name() == "mock" || self.hub.incognito() || job.injection || !crate::skills::may_be_command(&job.question) {
+            return None;
+        }
+        let raw = tokio::time::timeout(Duration::from_secs(10), self.llm.reply(&persona::route_prompt(), &persona::route_message(&job.question), job)).await.ok()?.ok()?;
+        let line = raw.lines().next().unwrap_or("").trim();
+        let skill = crate::skills::guess_skill(line, &job.question)?;
+        self.hub.emit(json!({"type": "tool", "ok": true, "text": format!("Зрозуміла як: {line}")}));
+        Some(skill)
+    }
+
     async fn compose(&self, about: &str, job: &ReplyJob) -> Option<String> {
         let raw = tokio::time::timeout(Duration::from_secs(30), self.llm.reply(&persona::compose_prompt(), &persona::compose_message(about), job)).await.ok()?.ok()?;
         persona::clean_composed(&raw)

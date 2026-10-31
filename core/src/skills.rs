@@ -1186,6 +1186,40 @@ async fn macos_open(args: &[&std::ffi::OsStr]) -> Result<(), String> {
 }
 
 /// Разбирает запрос владельца. Обычная болтовня навыком не считается.
+/// Без этих слов фраза точно не команда: модель лишний раз не спрашиваем.
+pub fn may_be_command(q: &str) -> bool {
+    const HINTS: &[&str] = &[
+        "музик", "музык", "музон", "трек", "пісн", "песн", "плейлист", "спот", "відео", "видео", "відос", "видос", "ютуб", "youtube",
+        "звук", "гучн", "громк", "тихіш", "голосніш", "тише", "громче", "таймер", "будильник", "розбуд", "разбуд", "нагад", "напомн",
+        "погод", "домен", "сайт", "айпі", "пауз", "стоп", "наступн", "следующ", "попередн", "предыдущ", "процесор", "процессор",
+        "оператив", "батаре", "заряд", "глуш", "вруб", "вимкн", "увімкн", "включ", "выключ", "запуст", "постав", "скинь", "знайд", "найди", "загугл", "перевір", "провер",
+    ];
+    let low = q.to_lowercase();
+    q.chars().count() <= 160 && HINTS.iter().any(|h| low.contains(h))
+}
+
+/// Команда, которую предложила модель. Выполняет её всё равно код, и только безопасное:
+/// написать людям, позвонить, закрыть программу или снять экран по догадке нельзя.
+pub fn guess_skill(line: &str, original: &str) -> Option<Skill> {
+    let line = line.trim().trim_matches(|c: char| "\"'«»`".contains(c)).trim();
+    if line.is_empty() || line.chars().count() > 160 || line.contains('<') || line.contains('\n') {
+        return None;
+    }
+    // Адрес или домен можно брать только из слов владельца, модель их не придумывает.
+    let original = original.to_lowercase();
+    let invented = line.split_whitespace().map(|w| w.trim_end_matches(|c: char| ",.;:!?".contains(c)).to_lowercase()).any(|w| w.contains('.') && !original.contains(&w));
+    if invented {
+        return None;
+    }
+    let skill = parse(line)?;
+    matches!(
+        skill,
+        Skill::Weather(_) | Skill::Timer(_) | Skill::Search(_) | Skill::IpInfo(_) | Skill::Domain(_) | Skill::Arsenal { .. } | Skill::Spotify(_) | Skill::SpotifyPlaylist(_)
+            | Skill::PlayVideo(_) | Skill::Video { .. } | Skill::Remind { .. } | Skill::Volume(_) | Skill::SysInfo | Skill::Help
+    )
+    .then_some(skill)
+}
+
 pub fn parse(q: &str) -> Option<Skill> {
     let normalized = command_text(q);
     let q = normalized.as_str();
@@ -1691,6 +1725,31 @@ pub async fn run(skill: &Skill, incognito: bool) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn guess_runs_only_safe_skills() {
+        assert_eq!(guess_skill("вимкни музику", "глуши музон"), Some(Skill::Spotify(SpotifyCmd::Pause)));
+        assert_eq!(guess_skill("«таймер на 5 хвилин»", "розбуди за п'ять хвилин"), Some(Skill::Timer(300)));
+        for risky in ["напиши @sasha_nick привіт", "подзвони Саші", "закрий Safari", "що на екрані", "відкрий калькулятор", "увімкни впн"] {
+            assert_eq!(guess_skill(risky, "вимкни це"), None, "{risky}");
+        }
+        assert_eq!(guess_skill("НІ", "мені подобається музика"), None);
+        assert_eq!(guess_skill("розказую про музику", "мені подобається музика"), None);
+    }
+
+    #[test]
+    fn guess_cannot_invent_targets() {
+        assert_eq!(guess_skill("whois evil.example", "глянь домен example.com"), None);
+        assert!(guess_skill("whois example.com", "глянь домен example.com").is_some());
+        assert_eq!(guess_skill("заголовки https://evil.example/x", "глянь сайт example.com"), None);
+    }
+
+    #[test]
+    fn hints_skip_plain_chat() {
+        assert!(may_be_command("глуши музон"));
+        assert!(!may_be_command("як справи"));
+        assert!(!may_be_command("розкажи анекдот"));
+    }
 
     #[test]
     fn intents() {
