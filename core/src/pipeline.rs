@@ -408,12 +408,7 @@ impl Engine {
         }
         if invented_action {
             // Причина из навыка точнее любых слов модели.
-            let unknown = if self.hub.incognito() {
-                "Цього я не зробила: в інкогніто виконую лише точні команди. Наприклад: вимкни музику."
-            } else {
-                "Цього я не зробила: не зрозуміла команду. Скажи ще раз, простіше."
-            };
-            let text = tool_error.map_or(unknown.to_string(), |e| format!("Н{}", e.trim_start_matches('н')));
+            let text = tool_error.map_or("Цього я не зробила: не зрозуміла команду. Скажи ще раз, простіше.".to_string(), |e| format!("Н{}", e.trim_start_matches('н')));
             return Some(Reply { text, emotion: Emotion::Neutral, outfit: None });
         }
         // Дважды брак: короткая отмашка лучше молчания, которое выглядит как зависание.
@@ -421,9 +416,9 @@ impl Engine {
     }
 
     /// Правила не поняли фразу: модель переводит её в команду из списка, а выполняет код.
-    /// В инкогнито разбор выключен, при любой неудаче остаётся обычный разговор.
+    /// В инкогнито тоже: эта фраза ушла бы в модель обычным разговором. При неудаче разговор и остаётся.
     async fn guess_command(&self, job: &ReplyJob) -> Option<crate::skills::Skill> {
-        if self.llm.name() == "mock" || self.hub.incognito() || job.injection || !crate::skills::may_be_command(&job.question) {
+        if self.llm.name() == "mock" || job.injection || !crate::skills::may_be_command(&job.question) {
             return None;
         }
         let raw = tokio::time::timeout(Duration::from_secs(10), self.llm.reply(&persona::route_prompt(), &persona::route_message(&job.question), job)).await.ok()?.ok()?;

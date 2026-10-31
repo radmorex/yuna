@@ -998,6 +998,8 @@ async fn press_youtube_key() -> Result<bool, String> {
 }
 
 /// K на YouTube переключает, поэтому смотрим на звук до и после: иначе «пауза» запустила бы остановленное видео.
+const NO_VIDEO_TAB: &str = "не бачу YouTube: вкладка з відео має бути активною у вікні браузера";
+
 async fn video_control(play: bool) -> Result<String, String> {
     let before = audio_playing().await;
     if !play && !before {
@@ -1007,7 +1009,7 @@ async fn video_control(play: bool) -> Result<String, String> {
         return Ok("Вже щось грає".into());
     }
     if !press_youtube_key().await? {
-        return Err("не бачу YouTube: вкладка з відео має бути активною у вікні браузера".into());
+        return Err(NO_VIDEO_TAB.into());
     }
     tokio::time::sleep(Duration::from_millis(1500)).await;
     Ok(match (play, audio_playing().await) {
@@ -1032,7 +1034,7 @@ async fn pause_media() -> Result<String, String> {
 /// Просили выключить музыку, а видео не нашлось: это не ошибка, играть просто нечему.
 fn quiet_when_no_video(result: Result<String, String>) -> Result<String, String> {
     match result {
-        Err(e) if e.starts_with("Не бачу YouTube") => Ok("У Spotify нічого не грає, вкладки YouTube не бачу".into()),
+        Err(e) if e == NO_VIDEO_TAB => Ok("У Spotify нічого не грає, вкладки YouTube не бачу".into()),
         other => other,
     }
 }
@@ -1736,7 +1738,7 @@ mod tests {
 
     #[test]
     fn music_stop_without_video_is_not_an_error() {
-        let found = quiet_when_no_video(Err("Не бачу YouTube: вкладка з відео має бути активною у вікні браузера".into()));
+        let found = quiet_when_no_video(Err(NO_VIDEO_TAB.into()));
         assert_eq!(found, Ok("У Spotify нічого не грає, вкладки YouTube не бачу".to_string()));
         assert_eq!(quiet_when_no_video(Err("немає дозволу".into())), Err("немає дозволу".to_string()));
         assert_eq!(quiet_when_no_video(Ok("Пауза".into())), Ok("Пауза".to_string()));
