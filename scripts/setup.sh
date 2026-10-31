@@ -29,7 +29,7 @@ rvc() {
   unzip -oq voices/voices-rvc.zip -d voices
   rm voices/voices-rvc.zip
   [ -x .venv-rvc/bin/python ] || uv venv .venv-rvc --python 3.10
-  uv pip install --python .venv-rvc/bin/python 'pip<24.1' 'rvc-python==0.1.5'
+  uv pip install --python .venv-rvc/bin/python -r tools/requirements-rvc.txt
   echo "✔ Голоси RVC встановлено. У .env: TTS_PROVIDER=rvc, RVC_VOICE=anna або aria"
 }
 

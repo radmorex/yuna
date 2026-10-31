@@ -158,8 +158,10 @@ def explain_failure(stderr, stdout):
     if "Ошибка:" in message:
         message = message.split("Ошибка:", 1)[1].strip()
     low = message.lower()
-    if "ключ" in low and ("virustotal" in low or "urlscan" in low):
+    if "ключ" in low and "urlscan" in low:
         return "Потрібен ключ сервісу: задай OSINT_VIRUSTOTAL або OSINT_URLSCAN у .env"
+    if "ключ" in low and "virustotal" in low:
+        return "Потрібен ключ сервісу: задай OSINT_VIRUSTOTAL у .env"
     if "hdiutil" in low:
         return "Не відкрилось сховище справ osint-kit: перевір vault_image у vendor/osint-kit/config.toml"
     return "Інструмент не зміг: " + (message[:160] or "без пояснення")

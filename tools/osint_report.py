@@ -69,7 +69,7 @@ def domain(data):
     if whois.get("creation_date"):
         parts.append(f"зареєстрований у {str(whois['creation_date'])[:4]}")
     if ssl.get("days_left") is not None:
-        parts.append(f"сертифікат ще {ssl["days_left"]} днів" if ssl["days_left"] >= 0 else "сертифікат прострочений")
+        parts.append(f"сертифікат ще {ssl['days_left']} днів" if ssl["days_left"] >= 0 else "сертифікат прострочений")
     summary = parts[0] + ": " + ", ".join(parts[1:]) + "." if len(parts) > 1 else f"{parts[0]}: даних мало."
     lines = _section("DNS", [(k, dns.get(k)) for k in ("A", "AAAA", "MX", "NS", "TXT", "DMARC")] + [("DNSSEC", "так" if dns.get("DNSSEC") else None)])
     lines += _section("Реєстрація", [("реєстратор", whois.get("registrar")), ("створено", _date(whois.get("creation_date"))), ("діє до", _date(whois.get("expiration_date")))])
@@ -163,7 +163,7 @@ def tables(data):
     lines = []
     for table in found[:MAX_ITEMS]:
         head = ", ".join(str(h) for h in (table.get("header") or []))
-        lines.append(f"Таблиця {table.get('table')}: {table.get('rows')} рядків, {table.get('cols')} стовпців. {head}".strip())
+        lines.append(f"Таблиця {table.get('table')}: рядків {table.get('rows')}, стовпців {table.get('cols')}. {head}".strip())
         if table.get("csv"):
             lines.append(f"  у справі yuna: {table['csv']}")
     return summary, "\n".join(lines)

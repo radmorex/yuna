@@ -84,7 +84,8 @@ class BatchTest(unittest.TestCase):
 
 class FailureTest(unittest.TestCase):
     def test_real_reason_is_shown(self):
-        self.assertIn("OSINT_VIRUSTOTAL", arsenal.explain_failure("Ошибка: Нужен ключ VirusTotal", ""))
+        self.assertNotIn("URLSCAN", arsenal.explain_failure("Ошибка: Нужен ключ VirusTotal", ""))
+        self.assertIn("OSINT_URLSCAN", arsenal.explain_failure("Ошибка: Нужен ключ VirusTotal или urlscan.io", ""))
         self.assertIn("сховище", arsenal.explain_failure("Ошибка: hdiutil attach failed", ""))
         self.assertIn("немає DNS", arsenal.explain_failure("Ошибка: немає DNS", ""))
 
