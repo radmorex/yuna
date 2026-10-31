@@ -1,0 +1,19 @@
+# секреты
+.env
+.env.*
+!.env.example
+# сборка и окружения
+core/target/
+.venv*/
+screenshots/
+.cache/
+node_modules/
+__pycache__/
+*.pyc
+# рантайм-данные
+data/
+*.log
+.DS_Store
+
+# модели голосов: у каждой своя лицензия, в git не кладём
+voices/

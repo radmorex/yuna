@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Юна — пульт</title>
+<style>
+  :root { --bg: #120a1e; --card: #1d1230; --line: rgba(190,150,255,.22); --v: #8b5cf6; --v2: #a78bfa; --t: #f1eaff; --m: #a99bc6; --ok: #4ade80; --err: #f87171;
+          --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(900px 500px at 80% -10%, #3a1e66 0%, transparent 60%), var(--bg); color: var(--t); font: 15px/1.4 var(--font); }
+  header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .04em; }
+  header h1 b { color: var(--v2); }
+  .tok { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--m); font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(320px, 440px) 1fr; gap: 18px; padding: 18px 24px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--m); }
+  input[type=text], input[type=password], textarea { width: 100%; background: #0f0819; color: var(--t); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; font: inherit; }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  button { background: #2a1a46; color: var(--t); border: 1px solid var(--line); border-radius: 9px; padding: 8px 14px; font: 600 14px var(--font); cursor: pointer; }
+  button:hover { border-color: var(--v2); }
+  button.primary { background: var(--v); border-color: var(--v); }
+  button.on { background: var(--v); }
+  label.chk { display: flex; gap: 6px; align-items: center; color: var(--m); }
+  pre { margin: 0; max-height: 300px; overflow: auto; background: #0c0616; border-radius: 9px; padding: 10px; font: 12px/1.45 ui-monospace, Menlo, monospace; color: #d6c9f2; }
+  .preview { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #0b0712; }
+  .preview iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+  #status { font-size: 13px; color: var(--m); }
+  #status.ok { color: var(--ok); } #status.err { color: var(--err); }
+  .mem { max-height: 420px; overflow: auto; display: grid; gap: 8px; }
+  .mem-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #150c24; }
+  .mem-item b { color: var(--v2); }
+  .mem-item .sum { color: var(--m); font-size: 13px; margin: 4px 0 8px; }
+  .mem-item .row { margin: 0; }
+  .mem-item input { flex: 1; padding: 6px 9px; }
+  .mem-item button { padding: 6px 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Пульт <b>Юни</b></h1>
+  <span id="status">—</span>
+  <div class="tok">X-Control-Token <input id="token" type="password" placeholder="(якщо заданий)" style="width:200px"></div>
+</header>
+<main>
+  <div>
+    <div class="card">
+      <h2>Тестове повідомлення</h2>
+      <div class="row"><input id="nick" type="text" value="tester" placeholder="нік" style="flex:1"><label class="chk"><input id="isAdmin" type="checkbox"> адмін</label></div>
+      <div class="row"><input id="text" type="text" placeholder="Юна, привіт!" style="flex:1"><button class="primary" id="sendChat">Надіслати</button></div>
+    </div>
+    <div class="card">
+      <h2>Юна говорить</h2>
+      <textarea id="say" placeholder="Текст, який Юна промовить"></textarea>
+      <div class="row" style="margin-top:8px"><button class="primary" id="sendSay">Сказати</button></div>
+    </div>
+    <div class="card">
+      <h2>Вбрання</h2>
+      <div class="row" id="outfits"><button data-o="hoodie">Худі</button><button data-o="dress">Сукня</button></div>
+      <h2 style="margin-top:14px">Емоція</h2>
+      <div class="row" id="emotions">
+        <button data-e="neutral">neutral</button><button data-e="smug">smug</button><button data-e="surprised">surprised</button><button data-e="angry">angry</button><button data-e="laugh">laugh</button>
+      </div>
+      <h2 style="margin-top:14px">Звук</h2>
+      <div class="row"><button id="mute">Звук: увімк</button></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>Перегляд оверлея</h2>
+      <div class="preview" id="preview"><iframe id="frame" title="overlay preview"></iframe></div>
+    </div>
+    <div class="card">
+      <h2>Стан (GET /api/state)</h2>
+      <pre id="state">—</pre>
+    </div>
+    <div class="card">
+      <h2>Пам'ять про співрозмовників</h2>
+      <div class="row"><input id="memFilter" type="text" placeholder="фільтр за ніком" style="flex:1"><button id="memRefresh">Оновити</button></div>
+      <div id="memList" class="mem"></div>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  const LS_KEY = 'mira.controlToken';
+  try { $('token').value = localStorage.getItem(LS_KEY) || ''; } catch (e) {}
+  $('token').addEventListener('change', () => { try { localStorage.setItem(LS_KEY, $('token').value); } catch (e) {} });
+
+  // preview iframe, scaled to card width
+  $('frame').src = 'overlay.html?bg=1' + (qs.get('demo') === '1' ? '&demo=1' : '');
+  const fit = () => { const w = $('preview').clientWidth; $('frame').style.transform = `scale(${w / 1920})`; };
+  new ResizeObserver(fit).observe($('preview')); fit();
+
+  let cur = { muted: false };
+  function status(msg, cls) { const s = $('status'); s.textContent = msg; s.className = cls || ''; }
+
+  async function api(path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const tok = $('token').value.trim();
+    if (tok) headers['X-Control-Token'] = tok;
+    try {
+      const r = await fetch(path, body === undefined ? { headers } : { method: 'POST', headers, body: JSON.stringify(body) });
+      if (!r.ok) { status(`${path}: HTTP ${r.status}`, 'err'); return null; }
+      status(`${path}: ok`, 'ok');
+      const ct = r.headers.get('content-type') || '';
+      return ct.includes('json') ? r.json() : r.text();
+    } catch (e) { status(`${path}: немає зв'язку`, 'err'); return null; }
+  }
+
+  function renderState(s) {
+    if (!s || typeof s !== 'object') return;
+    cur = s;
+    $('state').textContent = JSON.stringify(s, null, 2);
+    document.querySelectorAll('#outfits button').forEach((b) => b.classList.toggle('on', b.dataset.o === s.outfit));
+    document.querySelectorAll('#emotions button').forEach((b) => b.classList.toggle('on', b.dataset.e === s.emotion));
+    $('mute').textContent = s.muted ? 'Звук: вимк' : 'Звук: увімк';
+    $('mute').classList.toggle('on', !!s.muted);
+  }
+  async function refresh() { const s = await api('/api/state'); if (s) renderState(s); }
+
+  $('sendChat').onclick = async () => {
+    const text = $('text').value.trim(); if (!text) return;
+    await api('/api/chat', { user: $('nick').value.trim() || 'tester', text, isAdmin: $('isAdmin').checked });
+    $('text').value = '';
+  };
+  $('text').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sendChat').click(); });
+  $('sendSay').onclick = async () => { const text = $('say').value.trim(); if (text) { await api('/api/say', { text }); } };
+  document.querySelectorAll('#outfits button').forEach((b) => b.onclick = async () => { await api('/api/outfit', { outfit: b.dataset.o }); refresh(); });
+  document.querySelectorAll('#emotions button').forEach((b) => b.onclick = async () => { await api('/api/emotion', { emotion: b.dataset.e }); refresh(); });
+  $('mute').onclick = async () => { await api('/api/mute', { muted: !cur.muted }); refresh(); };
+
+  // память: данные зрителей вставляются только через textContent (ники и реплики — недоверенный ввод)
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+  async function loadMemory() {
+    const d = await api('/api/memory');
+    const list = $('memList'); list.replaceChildren();
+    if (!d || !d.viewers) return;
+    const f = $('memFilter').value.trim().toLowerCase();
+    const items = d.viewers.filter((v) => !f || v.user.toLowerCase().includes(f));
+    if (!items.length) { list.append(el('div', 'sum', 'Поки нікого немає: люди з\'являться тут, коли напишуть.')); return; }
+    for (const v of items) {
+      const box = el('div', 'mem-item');
+      const head = el('div'); head.append(el('b', '', v.user), document.createTextNode(` · ${v.messages} повідомл.`));
+      const note = el('input'); note.type = 'text'; note.placeholder = 'нотатка (Юна її враховуватиме)';
+      const add = el('button', '', 'Нотатка');
+      add.onclick = async () => { const t = note.value.trim(); if (t && await api('/api/memory/note', { user: v.user, note: t })) loadMemory(); };
+      const forget = el('button', '', 'Забути');
+      forget.onclick = async () => { if (confirm(`Видалити все, що Юна пам'ятає про ${v.user}?`) && await api('/api/memory/forget', { user: v.user })) loadMemory(); };
+      const row = el('div', 'row'); row.append(note, add, forget);
+      box.append(head, el('div', 'sum', v.summary), row);
+      list.append(box);
+    }
+  }
+  $('memRefresh').onclick = loadMemory;
+  $('memFilter').addEventListener('input', loadMemory);
+  loadMemory();
+  setInterval(loadMemory, 15000);
+
+  // live updates via SSE (falls back to polling)
+  try {
+    const es = new EventSource('/events');
+    es.onmessage = (e) => {
+      try {
+        const ev = JSON.parse(e.data);
+        if (ev.type === 'state') renderState(ev);
+        else if (['outfit', 'emotion', 'mute', 'viewers'].includes(ev.type)) refresh();
+      } catch (err) {}
+    };
+  } catch (e) {}
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>

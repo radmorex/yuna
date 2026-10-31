@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Розмова з Юною</title>
+<style>
+  :root { --ink: #0b0a0d; --ink-2: #15131a; --line: rgba(236,230,217,.2); --rose: #c98fa0; --t: #ece6d9; --m: #8f897d; --err: #e0909f;
+          --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--ink); color: var(--t); font: 16px/1.4 var(--font); display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
+  #view { position: relative; width: min(100%, calc((100vh - 130px) * 1220 / 780)); aspect-ratio: 1220 / 780; overflow: hidden; border-radius: 6px; }
+  #view iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+  form { display: flex; gap: 8px; width: min(100%, calc((100vh - 130px) * 1220 / 780)); flex-wrap: wrap; }
+  input { background: var(--ink-2); color: var(--t); border: 1px solid var(--line); border-radius: 2px; padding: 12px 14px; font: inherit; min-width: 0; outline: none; }
+  input:focus { border-color: var(--rose); }
+  input::placeholder { color: var(--m); }
+  #nick { width: 140px; }
+  #text { flex: 1 1 240px; }
+  button { background: transparent; color: var(--t); border: 1px solid var(--rose); border-radius: 2px; padding: 12px 24px; font: 400 16px "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; letter-spacing: .14em; cursor: pointer; }
+  button:hover { background: rgba(201,143,160,.16); }
+  #info { width: min(100%, calc((100vh - 130px) * 1220 / 780)); color: var(--m); font-size: 13px; min-height: 18px; letter-spacing: .02em; }
+  #info.err { color: var(--err); }
+</style>
+</head>
+<body>
+<div id="view"><iframe id="frame" src="overlay.html" allow="autoplay" title="Юна"></iframe></div>
+<form id="f">
+  <input id="nick" type="text" maxlength="40" placeholder="твій нік" aria-label="Нік">
+  <input id="text" type="text" maxlength="400" placeholder="Напиши Юні…" aria-label="Повідомлення" autofocus>
+  <button type="submit">Сказати</button>
+</form>
+<div id="info"></div>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  // Показываем только панель оверлея: её координаты на сцене 1920×1080.
+  const P = { x: 36, y: 264, w: 1220 };
+  const fit = () => { const k = $('view').clientWidth / P.w; $('frame').style.transform = `scale(${k}) translate(${-P.x}px, ${-P.y}px)`; };
+  new ResizeObserver(fit).observe($('view')); fit();
+
+  try { $('nick').value = localStorage.getItem('mira.talkNick') || ''; } catch (e) {}
+  if (!$('nick').value) $('nick').value = 'гість';
+
+  let botName = 'Юна';
+  try {
+    new EventSource('/events').onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === 'brainError') { $('info').textContent = 'Модель не відповіла: ' + ev.message; $('info').classList.add('err'); }
+    };
+  } catch (err) {}
+  fetch('/api/state').then((r) => r.json()).then((s) => {
+    if (s.botName) { botName = s.botName; document.title = 'Розмова: ' + botName; $('text').placeholder = 'Напиши: ' + botName + ' відповість…'; }
+    $('info').textContent = s.llm === 'mock'
+      ? 'Мозок: шаблони (без ключа LLM відповідає заготовками). Голос: ' + s.tts
+      : 'Мозок: ' + s.llm + '. Голос: ' + s.tts;
+  }).catch(() => {});
+
+  $('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = $('text').value.trim();
+    const user = $('nick').value.trim() || 'гість';
+    if (!text) return;
+    try { localStorage.setItem('mira.talkNick', user); } catch (err) {}
+    // Клик здесь — жест пользователя: будим звук внутри оверлея.
+    try { $('frame').contentDocument.dispatchEvent(new Event('pointerdown')); } catch (err) {}
+    $('text').value = '';
+    // Обращение подставляем сами; команды «!…» идут как есть.
+    const body = text.startsWith('!') ? text : botName + ', ' + text;
+    try {
+      const r = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user, text: body, isAdmin: true }) });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      $('info').classList.remove('err');
+    } catch (err) {
+      $('info').textContent = 'Не надіслано: ' + err.message + '. Сервер запущено?';
+      $('info').classList.add('err');
+    }
+    $('text').focus();
+  });
+})();
+</script>
+</body>
+</html>

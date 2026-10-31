@@ -1,0 +1,17 @@
+{
+  "name": "yuna",
+  "private": true,
+  "description": "Юна — особиста ШІ-асистентка на робочому столі. Ядро на Rust, сайдкари на Python. npm тут лише зручні аліаси, залежностей немає.",
+  "scripts": {
+    "demo": "bash scripts/demo.sh",
+    "talk": "bash scripts/talk.sh",
+    "desktop": "bash scripts/desktop.sh",
+    "voice": "bash scripts/voice.sh",
+    "rvc": ".venv-rvc/bin/python tools/rvc_server.py",
+    "start": "bash scripts/start.sh",
+    "test": "bash scripts/test.sh",
+    "discord": "bash scripts/discord.sh",
+    "silero": "bash scripts/silero.sh",
+    "screenshots": ".venv/bin/python scripts/screenshot.py"
+  }
+}

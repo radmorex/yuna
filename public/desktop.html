@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Юна</title>
+<style>
+  :root { --ink: rgba(11,10,13,.92); --ink-2: #15131a; --t: #ece6d9; --m: #a39d90; --line: rgba(236,230,217,.22); --rose: #c98fa0; --rec: #c9536a;
+          --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font: 13px/1.35 var(--font); color: var(--t); user-select: none; }
+  /* Персонаж у края экрана, панель одним блоком рядом с ним */
+  #app { height: 100%; display: flex; gap: 8px; }
+  body.side-r #app { flex-direction: row; }
+  body.side-l #app { flex-direction: row-reverse; }
+  #stage { position: relative; flex: 0 0 225px; height: 100%; cursor: grab; }
+  /* Рисунок заканчивается на поясе: низ плавно растворяем вместо резкой линии */
+  #avatar { position: absolute; inset: 0; pointer-events: none;
+            -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 97%); mask-image: linear-gradient(to bottom, #000 72%, transparent 97%); }
+  #fold { position: absolute; top: 6px; right: 6px; z-index: 3; width: 22px; height: 22px; padding: 0; flex: none; background: var(--ink); line-height: 1; border-radius: 50%; opacity: 0; transition: opacity .15s; }
+  #stage:hover #fold, #fold:focus-visible { opacity: 1; }
+  body.side-l #fold { right: auto; left: 6px; }
+  #panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
+  body.compact #app { justify-content: center; }
+  body.compact #panel { display: none; }
+  body.compact #stage { flex: 1 1 auto; }
+  #head { display: flex; align-items: center; gap: 8px; color: var(--m); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; cursor: grab; padding: 2px 2px 4px; border-bottom: 1px solid var(--line); }
+  #head b { color: var(--t); font-weight: 400; }
+  #log { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-color: var(--line) transparent; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; user-select: text; scrollbar-width: thin; }
+  #log:empty::before { content: "Напиши, скажи голосом або покажи фото."; color: var(--m); }
+  /* flex: none: иначе длинный чат сжимает сообщения со своей прокруткой до белых квадратиков. */
+  .msg { flex: none; padding: 5px 8px; border-left: 2px solid transparent; overflow-wrap: anywhere; }
+  .msg.me { color: var(--m); }
+  .msg.tool { white-space: pre-wrap; word-break: break-word; font: 11px/1.4 ui-monospace, Menlo, monospace; color: var(--m); border-left-color: var(--line); max-height: 180px; overflow-y: auto; }
+  .msg.tool.bad { color: #e0909f; }
+  button.ghost { color: var(--t); border-color: #8fa6c9; background: rgba(143,166,201,.16); }
+  .msg.her { background: rgba(236,230,217,.05); border-left-color: var(--rose); }
+  #row { display: flex; gap: 5px; }
+  button { flex: 1; white-space: nowrap; background: transparent; color: var(--m); border: 1px solid var(--line); border-radius: 2px; padding: 5px 4px; font: 400 11px var(--font); letter-spacing: .06em; cursor: pointer; }
+  button:hover { color: var(--t); }
+  button.on { color: var(--t); border-color: var(--rose); }
+  button.rec { color: var(--t); border-color: var(--rec); background: rgba(201,83,106,.2); }
+  #send { display: flex; gap: 5px; }
+  #mic { flex: 0 0 72px; }
+  #photo { flex: 0 0 48px; }
+  .shot { display: block; max-width: 100%; max-height: 130px; border-radius: 3px; margin-top: 3px; }
+  input { flex: 1; min-width: 0; width: 100%; background: var(--ink-2); color: var(--t); border: 1px solid var(--line); border-radius: 2px; padding: 7px 9px; font: inherit; user-select: text; outline: none; }
+  input:focus { border-color: var(--rose); }
+  input::placeholder { color: #7f7a70; }
+  #note { color: var(--m); font-size: 11px; }
+  #note:empty { display: none; }
+  #note.err { color: #e0909f; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <div id="head" class="pywebview-drag-region"><b id="name">Юна</b></div>
+    <div id="log"></div>
+    <div id="note"></div>
+    <div id="row">
+      <button id="listen" title="Слухати весь звук комп'ютера. Рамка: увімкнено">Слухати</button>
+      <button id="voice" title="Відповідати голосом. Рамка: увімкнено">Голос</button>
+      <button id="wake" title="Реагувати на слово «Юна». Мікрофон слухає постійно, слово шукається локально, усе інше відкидається. Команду після імені розпізнає Gemini, в інкогніто локально. Рамка: увімкнено">Юна</button>
+      <button id="net" title="Вільний: звичайний браузер. Інкогніто: лише через Mullvad VPN, сайти в Mullvad Browser, запити й результати інструментів не йдуть у Gemini">Вільний</button>
+      <button id="clear" title="Очистити чат">Очистити</button>
+    </div>
+    <div id="send">
+      <input id="text" maxlength="400" placeholder="Напиши…" autocomplete="off" aria-label="Повідомлення">
+      <button id="photo" title="Показати фото: файл, вставка Cmd+V або перетягування" aria-label="Показати фото">Фото</button>
+      <input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+      <button id="mic" title="Натисни й говори: після паузи надішлю сама" aria-label="Відповісти голосом">Мікрофон</button>
+    </div>
+  </div>
+  <div id="stage" class="pywebview-drag-region" title="Натисни: панель. Перетягни: прилипне до кута">
+    <div id="avatar"></div>
+    <button id="fold" title="Згорнути або розгорнути панель">–</button>
+  </div>
+</div>
+<script src="avatar-echo.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const av = window.MiraAvatar.create($('avatar'));
+  let botName = 'Юна', muted = true, listening = false, incognito = false, wake = false, ctx = null, queue = Promise.resolve();
+  const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  function note(text, err) { $('note').textContent = text || ''; $('note').className = err ? 'err' : ''; }
+  function render() {
+    $('listen').textContent = listening ? 'Слухаю' : 'Слухати';
+    $('listen').classList.toggle('rec', listening);
+    $('voice').classList.toggle('on', !muted);
+    $('wake').classList.toggle('on', wake);
+    $('net').textContent = incognito ? 'Інкогніто' : 'Вільний';
+    $('net').classList.toggle('ghost', incognito);
+  }
+  function unlock() {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state !== 'running') ctx.resume();
+    } catch (e) {}
+  }
+  function play(url, text, ms) {
+    return new Promise((done) => {
+      const a = new Audio(url);
+      let source = null, analyser = null;
+      let finished = false;
+      const end = () => { if (!finished) { finished = true; av.detachAnalyser(); done(); } };
+      const silent = () => { av.detachAnalyser(); av.speakText(text, ms); setTimeout(end, ms); };
+      a.onended = end; a.onerror = silent;
+      // Без onended (например, AudioContext не проснулся) очередь голоса зависла бы навсегда.
+      setTimeout(end, ms + 5000);
+      try {
+        unlock();
+        source = ctx.createMediaElementSource(a);
+        analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
+        source.connect(analyser); analyser.connect(ctx.destination);
+        av.attachAnalyser(analyser);
+      } catch (e) {}
+      a.play().catch(silent);
+    });
+  }
+  function addMsg(who, text) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + who; d.textContent = text;
+    $('log').append(d);
+    while ($('log').children.length > 40) $('log').firstChild.remove();
+    $('log').scrollTop = $('log').scrollHeight;
+  }
+  // Сторону и свёрнутость задаёт окно: персонаж всегда у края экрана.
+  window.__dock = (s) => {
+    document.body.classList.toggle('side-l', s.corner[1] === 'l');
+    document.body.classList.toggle('side-r', s.corner[1] !== 'l');
+    document.body.classList.toggle('compact', !!s.compact);
+    $('fold').textContent = s.compact ? '+' : '–';
+  };
+  window.__dock({ corner: 'br', compact: false });
+  window.addEventListener('pywebviewready', () => window.pywebview.api.get_layout().then(window.__dock));
+  function togglePanel() {
+    if (window.pywebview) window.pywebview.api.toggle_compact().then(window.__dock);
+    else window.__dock({ corner: 'br', compact: !document.body.classList.contains('compact') });
+  }
+  $('fold').onclick = (e) => { e.stopPropagation(); togglePanel(); };
+  // Клик по персонажу открывает панель; если мышь сдвинулась, это было перетаскивание.
+  let down = null;
+  $('stage').addEventListener('mousedown', (e) => { down = [e.screenX, e.screenY]; });
+  $('stage').addEventListener('click', (e) => {
+    if (e.target.id === 'fold' || !down) return;
+    if (Math.abs(e.screenX - down[0]) + Math.abs(e.screenY - down[1]) < 6) togglePanel();
+    down = null;
+  });
+  function onMira(ev) {
+    if ($('note').className === 'err') note('');
+    addMsg('her', ev.text);
+    if (ev.emotion) av.setEmotion(ev.emotion);
+    if (ev.outfit) av.setOutfit(ev.outfit);
+    if (ev.audioUrl) queue = queue.then(() => play(ev.audioUrl, ev.text, ev.durationMs));
+  }
+
+  const es = new EventSource('/events');
+  es.onerror = () => note('Немає зв\'язку з ядром, пробую знову…', true);
+  es.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === 'state') {
+      if ($('note').className === 'err') note('');
+      muted = ev.muted; listening = !!ev.listening; incognito = !!ev.incognito; wake = !!ev.wake; botName = ev.botName || botName;
+      av.setOutfit(ev.outfit); av.setEmotion(ev.emotion);
+      $('text').placeholder = 'Напиши: ' + botName + ' відповість…';
+      $('name').textContent = botName;
+      render();
+    } else if (ev.type === 'mira') onMira(ev);
+    else if (ev.type === 'wake') { wake = ev.wake; render(); }
+    else if (ev.type === 'wakeReady') { note('Слухаю…'); }
+    else if (ev.type === 'wakeHeard') { note(''); addMsg('me', ev.text); }
+    else if (ev.type === 'miraAudio') queue = queue.then(() => play(ev.audioUrl, ev.text, ev.durationMs));
+    else if (ev.type === 'mute') { muted = ev.muted; render(); }
+    else if (ev.type === 'listen') { listening = ev.listening; render(); if (!listening) note(''); else note('Аудіо не зберігається. У Google іде лише текст для коментарів.'); }
+    else if (ev.type === 'listenError') { note(ev.message, true); }
+    else if (ev.type === 'brainError') { note('Модель не відповіла: ' + ev.message, true); }
+    else if (ev.type === 'notice') { note(ev.message, true); }
+    else if (ev.type === 'clear') $('log').replaceChildren();
+    else if (ev.type === 'netmode') { incognito = ev.incognito; render(); note(incognito ? 'Інкогніто: Mullvad VPN і Mullvad Browser. Звичайні повідомлення все одно йдуть у Gemini.' : ''); }
+    else if (ev.type === 'tool') { addMsg(ev.ok ? 'tool' : 'tool bad', ev.text); }
+    else if (ev.type === 'emotion') av.setEmotion(ev.emotion);
+    else if (ev.type === 'outfit') av.setOutfit(ev.outfit);
+  };
+
+  $('listen').onclick = () => { unlock(); post('/api/listen', { enabled: !listening }); };
+  $('wake').onclick = () => post('/api/wake', { enabled: !wake });
+  $('voice').onclick = () => { unlock(); post('/api/mute', { muted: !muted }); };
+  const history = [];
+  let historyAt = 0;
+  function send(text) {
+    unlock();
+    addMsg('me', text);
+    const body = text.startsWith('!') ? text : botName + ', ' + text;
+    post('/api/chat', { user: 'власник', text: body, isAdmin: true })
+      .then((r) => { if (!r.ok) note('Сервер відхилив повідомлення', true); })
+      .catch(() => note('Сервер не відповідає', true));
+  }
+  $('text').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const text = $('text').value.trim();
+    if (!text) return;
+    $('text').value = '';
+    history.push(text);
+    if (history.length > 50) history.shift();
+    historyAt = history.length;
+    send(text);
+  });
+  // Стрелки листают свои прошлые команды, как в терминале.
+  $('text').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    historyAt = Math.max(0, Math.min(history.length, historyAt + (e.key === 'ArrowUp' ? -1 : 1)));
+    $('text').value = history[historyAt] || '';
+  });
+  // Фото: уменьшаем в браузере до 1280 px и отправляем JPEG. На диск ничего не пишем.
+  function shrink(file) {
+    return new Promise((ok, fail) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        ok(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  async function sendPhoto(file) {
+    if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) { note('Потрібне фото JPEG, PNG або WebP', true); return; }
+    let image;
+    try { image = await shrink(file); } catch (e) { note('Не вдалося відкрити фото', true); return; }
+    const text = $('text').value.trim() || 'Що на цьому фото?';
+    $('text').value = '';
+    unlock();
+    addMsg('me', text);
+    const pic = new Image(); pic.src = image; pic.className = 'shot'; pic.alt = 'Твоє фото';
+    $('log').lastChild.append(pic);
+    $('log').scrollTop = $('log').scrollHeight;
+    const r = await post('/api/chat', { user: 'власник', text: botName + ', ' + text, isAdmin: true, image }).catch(() => null);
+    if (!r) note('Сервер не відповідає', true);
+    else if (!r.ok) note(await r.text(), true);
+    else note('');
+  }
+  $('photo').onclick = () => $('file').click();
+  $('file').onchange = () => { const f = $('file').files[0]; $('file').value = ''; if (f) sendPhoto(f); };
+  document.addEventListener('paste', (e) => {
+    const item = [...(e.clipboardData && e.clipboardData.items || [])].find((i) => i.type.startsWith('image/'));
+    if (item) { e.preventDefault(); sendPhoto(item.getAsFile()); }
+  });
+  document.addEventListener('dragover', (e) => e.preventDefault());
+  document.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) sendPhoto(f); });
+  $('net').onclick = () => post('/api/netmode', { incognito: !incognito });
+  $('clear').onclick = () => { $('log').replaceChildren(); note(''); post('/api/clear', {}); };
+
+  // Голосовой ответ: первое нажатие начинает запись, второе отправляет. Работает только в окне приложения.
+  let recording = false;
+  // Окно заметило паузу после фразы: то же, что второе нажатие.
+  window.__micAuto = () => { if (recording) $('mic').click(); };
+  $('mic').onclick = async () => {
+    const api = window.pywebview && window.pywebview.api;
+    if (!api) { note('Мікрофон працює лише у вікні застосунку', true); return; }
+    unlock();
+    if (!recording) {
+      const r = await api.mic_start().catch(() => ({ ok: false }));
+      if (!r.ok) { note('Мікрофон недоступний: ' + (r.error || ''), true); return; }
+      recording = true;
+      $('mic').textContent = 'Стоп'; $('mic').classList.add('rec'); note(incognito ? 'Говори: розпізнаю локально, запис нікуди не йде.' : 'Говори: після паузи надішлю сама. Звук піде в Gemini на розпізнавання, на диск не пишеться.');
+    } else {
+      recording = false;
+      $('mic').textContent = '…'; $('mic').disabled = true; $('mic').classList.remove('rec'); note('Розпізнаю…');
+      // Сбой моста не должен оставить кнопку выключенной навсегда.
+      const r = await api.mic_stop().catch(() => ({ error: 'Не вдалося розпізнати.' }));
+      $('mic').textContent = 'Мікрофон'; $('mic').disabled = false;
+      if (r.error) note(r.error, true);
+      else if (r.text) { note(''); send(r.text); }
+      else note('Нічого не почула', true);
+    }
+  };
+})();
+</script>
+</body>
+</html>

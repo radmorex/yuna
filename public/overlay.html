@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Юна — оверлей</title>
+<link rel="stylesheet" href="overlay.css">
+<!-- used only by the optional VRM mode (?avatar=vrm) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.js"
+} }
+</script>
+</head>
+<body>
+<div id="stage">
+  <section id="panel" class="glass">
+    <header id="hdr">
+      <div class="hdr-left">
+        <span class="hdr-title">ЧАТ ЧИТАЮ ТУТ</span>
+        <span class="twitch-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 28" width="22" height="26"><path fill="currentColor" d="M2 0 0 5v19h6v4h3.5l4-4H18l6-6V0H2Zm20 17-4 4h-5l-3.5 3.5V21H5V2h17v15Zm-4-11h-2.2v6.5H18V6Zm-6 0H9.8v6.5H12V6Z"/></svg>
+        </span>
+        <span id="channel" class="channel">twitch.tv/…</span>
+      </div>
+      <svg class="hdr-mark" viewBox="0 0 120 28" width="120" height="28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" aria-hidden="true"><circle cx="60" cy="14" r="3.2"/><path d="M52 14 C40 12 26 5 10 3 C22 9 26 13 34 16 C30 16 24 17 18 21 C30 20 42 19 52 15"/><path d="M68 14 C80 12 94 5 110 3 C98 9 94 13 86 16 C90 16 96 17 102 21 C90 20 78 19 68 15"/></svg>
+      <div class="hdr-right">
+        <span class="live-dot"></span>
+        <span id="viewers" class="viewers">0 ГЛЯДАЧІВ</span>
+      </div>
+    </header>
+
+    <div id="body">
+      <div id="chatCol">
+        <div class="chat-head">
+          <svg class="chat-feather" viewBox="0 0 18 22" width="15" height="18" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" aria-hidden="true"><path d="M2 21 C5 14 8 8 16 1 C17 8 13 15 5 16 M2 21 L9 9"/></svg><span class="chat-label">ЧАТ</span>
+          <span class="hint">ПОКЛИЧ ЮНУ: <b>«ЮНА, …»</b></span>
+        </div>
+        <ul id="chat"></ul>
+      </div>
+      <div id="avatarCol">
+        <svg class="halo" viewBox="0 0 540 540" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="270" cy="270" r="262"/><circle cx="270" cy="270" r="232" stroke-dasharray="2 9"/><path d="M40 270 A230 230 0 0 1 500 270" transform="translate(0 -22)"/></svg>
+        <div id="avatar"></div>
+        <div class="tag"><b>ЮНА</b><span>·</span>співведуча<div id="speaking" class="speaking-indicator"><i></i><i></i><i></i></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="chips">
+    <div id="conn" class="conn" hidden>немає зв'язку із сервером…</div>
+    <button id="soundChip" class="sound-chip" hidden>Натисни, щоб увімкнути звук</button>
+    <div id="toast" class="toast" hidden></div>
+  </div>
+</div>
+<script src="avatar-echo.js"></script>
+<script src="overlay.js"></script>
+</body>
+</html>
