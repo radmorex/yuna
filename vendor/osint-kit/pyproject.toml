@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "osint-kit"
+version = "1.0.0"
+description = "Консольный набор OSINT-инструментов"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx", "requests", "beautifulsoup4", "lxml", "dnspython", "python-whois",
+  "playwright", "yt-dlp", "deep-translator", "telethon", "pillow", "cryptography",
+  "rich", "sherlock-project", "keyring", "pywebview",
+]
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+osint = "osint_kit.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: браузер, ffmpeg, yt-dlp (пропустити: -m 'not slow')", "live_ocr: справжнє розпізнавання тексту macOS Vision"]

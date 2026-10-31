@@ -1,0 +1,12 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "deflix-core"
+version = "0.1.0"
+description = "Rust-ядро osint-kit: хеширование и извлечение индикаторов"
+requires-python = ">=3.11"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]

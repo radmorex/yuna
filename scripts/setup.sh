@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Необов'язкові пакети: bash scripts/setup.sh tools | voices | rvc | model | all
+set -e
+cd "$(dirname "$0")/.."
+command -v uv >/dev/null || { echo "Потрібен uv: brew install uv"; exit 1; }
+
+# Інструменти OSINT: окреме оточення всередині vendor/osint-kit.
+tools() {
+  [ -x vendor/osint-kit/.venv/bin/python ] || uv venv vendor/osint-kit/.venv --python 3.12
+  uv pip install --python vendor/osint-kit/.venv/bin/python -e vendor/osint-kit
+  echo "✔ Інструменти OSINT встановлено"
+}
+
+# Голоси edge-tts і Piper.
+voices() {
+  bash scripts/voice.sh
+}
+
+# Моделі RVC лежать у приватному релізі: файли завеликі для git.
+rvc() {
+  command -v gh >/dev/null || { echo "Потрібен gh: brew install gh"; exit 1; }
+  mkdir -p voices
+  gh release download voices-v1 --repo radmorex/yuna --pattern 'voices-rvc.zip' --dir voices --clobber
+  unzip -oq voices/voices-rvc.zip -d voices
+  rm voices/voices-rvc.zip
+  [ -x .venv-rvc/bin/python ] || uv venv .venv-rvc --python 3.10
+  uv pip install --python .venv-rvc/bin/python 'pip<24.1' 'rvc-python==0.1.5'
+  echo "✔ Голоси RVC встановлено. У .env: TTS_PROVIDER=rvc, RVC_VOICE=anna або aria"
+}
+
+# Локальна модель: ключ не потрібен, важить близько 5 ГБ.
+model() {
+  command -v ollama >/dev/null || { echo "Потрібна Ollama: brew install ollama"; exit 1; }
+  ollama pull "${OLLAMA_MODEL:-qwen3:8b}"
+  echo "✔ Модель встановлено. У .env: LLM_PROVIDER=ollama"
+}
+
+case "${1:-}" in
+  tools) tools ;;
+  voices) voices ;;
+  rvc) rvc ;;
+  model) model ;;
+  all) tools; voices; rvc; model ;;
+  *) echo "Використання: bash scripts/setup.sh tools|voices|rvc|model|all"; exit 1 ;;
+esac

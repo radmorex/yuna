@@ -1,0 +1,14 @@
+# секреты и данные справ — не коммитить
+config.toml
+cases/
+*.session
+*.session-journal
+
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+core/target/
+.pytest_cache/
+.DS_Store

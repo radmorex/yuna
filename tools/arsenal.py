@@ -13,8 +13,9 @@ import subprocess
 import sys
 from urllib.parse import urlsplit
 
-KIT = os.environ.get("OSINT_KIT_DIR", os.path.expanduser("~/osint-kit"))
-WEB_KIT = os.environ.get("PUBLIC_TOOLS_DIR", os.path.expanduser("~/public-tools"))
+HERE = os.path.dirname(os.path.abspath(__file__))
+KIT = os.environ.get("OSINT_KIT_DIR", os.path.join(HERE, "..", "vendor", "osint-kit"))
+WEB_KIT = os.environ.get("PUBLIC_TOOLS_DIR", HERE)
 MULLVAD = os.environ.get("MULLVAD_BIN", "/usr/local/bin/mullvad")
 CASE = "yuna"
 LIMIT = 1800
@@ -125,7 +126,7 @@ def require_vpn():
 def run_osint(tool, target):
     python = os.path.join(KIT, ".venv/bin/python")
     if not os.access(python, os.X_OK):
-        raise Refused("osint-kit не знайдено")
+        raise Refused("osint-kit не встановлено: bash scripts/setup.sh tools")
     # Весь трафик и так идёт через туннель Mullvad, собственный маршрут инструменту не нужен.
     env = {**os.environ, "OSINT_ROUTE": "direct"}
     base = [python, "-m", "osint_kit.cli"]
@@ -144,7 +145,7 @@ def run_osint(tool, target):
 
 
 def run_web(tool, target):
-    sys.path.insert(0, os.path.join(WEB_KIT, "python"))
+    sys.path.insert(0, WEB_KIT)
     import public_tools
 
     if tool == "youtube_first":

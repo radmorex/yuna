@@ -1,0 +1,45 @@
+# Настройки osint-kit. Скопируйте в config.toml и впишите свои значения.
+# Всё необязательно: без ключей соответствующие модули просто выключены, остальное работает.
+
+[general]
+# Где хранить дела. По умолчанию — папка cases рядом с программой.
+# cases_dir = "~/Documents/osint-kit/cases"
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+timeout = 20
+block_trackers = true   # при web capture блокировать рекламу и трекеры
+# Дела хранятся в зашифрованном образе диска (AES-256), пароль — в Keychain.
+# Закрыть хранилище: osint case lock. Выключать только для тестов.
+encrypt_cases = true
+# vault_image = "~/Library/Application Support/osint-kit/cases.sparsebundle"
+
+[network]
+# Как программа выходит в интернет:
+#   "tor"    — по умолчанию: сайты видят выход Tor, а не ваш IP; если Tor не запущен — проверки не выполняются
+#   "proxy"  — свой SOCKS5 (напр. от VPN-провайдера): укажите proxy = "socks5h://адрес:порт"
+#   "direct" — напрямую: сайты видят ваш IP
+# Переключить: osint route set tor | direct. Проверить: osint route check
+route = "tor"
+# Справочные сервисы, которые блокируют Tor (отвечают 403): только для них — один повтор напрямую.
+# Они увидят ваш IP и проверяемый адрес; сама цель проверки — нет. Ответ не про запрошенный IP отбрасывается.
+# Пустой список — никогда не напрямую.
+direct_fallback = ["ipinfo.io", "internetdb.shodan.io"]
+# proxy = "socks5h://127.0.0.1:1080"
+
+[services]
+# Локально развёрнутый Web-Check (github.com/lissy93/web-check), напр. http://localhost:3000
+webcheck_url = ""
+# Локальный LibreTranslate для офлайн-перевода, напр. http://localhost:5000
+libretranslate_url = ""
+
+[keys]
+# Ключи можно задать здесь или через переменные окружения OSINT_SHODAN, OSINT_VIRUSTOTAL и т. д.
+# По ТЗ источники с ключами необязательны: без ключа проверка просто не выполняется.
+shodan = ""
+virustotal = ""
+abuseipdb = ""
+urlscan = ""
+criminalip = ""
+hive = ""
+# Telegram: получить на https://my.telegram.org -> API development tools
+telegram_api_id = ""
+telegram_api_hash = ""

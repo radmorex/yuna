@@ -7,6 +7,7 @@
     "talk": "bash scripts/talk.sh",
     "desktop": "bash scripts/desktop.sh",
     "voice": "bash scripts/voice.sh",
+    "setup": "bash scripts/setup.sh",
     "rvc": ".venv-rvc/bin/python tools/rvc_server.py",
     "start": "bash scripts/start.sh",
     "test": "bash scripts/test.sh",

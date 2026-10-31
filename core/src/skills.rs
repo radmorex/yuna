@@ -1364,8 +1364,10 @@ pub fn is_local(skill: &Skill) -> bool {
 }
 
 fn arsenal_python() -> String {
-    std::env::var("ARSENAL_PYTHON")
-        .unwrap_or_else(|_| format!("{}/osint-kit/.venv/bin/python", std::env::var("HOME").unwrap_or_default()))
+    std::env::var("ARSENAL_PYTHON").unwrap_or_else(|_| {
+        let kit = "vendor/osint-kit/.venv/bin/python";
+        if std::path::Path::new(kit).exists() { kit.to_string() } else { "python3".to_string() }
+    })
 }
 
 /// Вызов `tools/arsenal.py`. Аргументы идут списком, без shell.

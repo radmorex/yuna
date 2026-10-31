@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<!-- 'unsafe-eval' обязателен: мост pywebview строит функции через new Function и возвращает ответы через eval.
+     Без него окно остаётся чёрным. Наружу страница по-прежнему ничего не грузит и не отправляет. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'">
+<title>Fallen Angel</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<!-- логотип (ui/logo.svg, рисует logo.py): копируется на экран блокировки и на стартовую страницу -->
+<template id="logo"><!--LOGO--></template>
+
+<div id="lockscreen" class="lockscreen" hidden>
+  <div data-logo></div>
+  <h1 class="hero-title">Fallen Angel</h1>
+  <p class="muted">хранилище дел закрыто · AES-256</p>
+  <button id="unlock" class="btn">Открыть хранилище</button>
+  <p id="lock-error" class="err"></p>
+</div>
+
+<div id="app" class="app" hidden>
+  <aside class="side">
+    <button class="side-brand" data-page="cases"><span class="mark" data-logo-mark></span>Fallen Angel</button>
+    <button class="btn side-new" data-page="cases">＋ Новый поиск</button>
+    <input id="case-filter" class="side-filter" placeholder="Найти дело" autocomplete="off" spellcheck="false">
+    <div class="side-title">Дела</div>
+    <nav id="side-cases" class="side-cases"></nav>
+    <div class="side-foot">
+      <button id="route" class="route" title="маршрут в интернет"></button>
+      <button class="side-link" data-page="queue">Очередь <span id="q-count" class="pill q-count"></span></button>
+      <button class="side-link" data-page="settings">Настройки</button>
+      <button id="btn-lock" class="side-link">Закрыть хранилище</button>
+      <span id="vault" class="vault-note"></span>
+    </div>
+  </aside>
+  <main id="page" class="page"></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script>/*JS*/</script>
+</body>
+</html>
