@@ -1026,7 +1026,15 @@ async fn pause_media() -> Result<String, String> {
             return spotify_pause().await;
         }
     }
-    video_control(false).await
+    quiet_when_no_video(video_control(false).await)
+}
+
+/// Просили выключить музыку, а видео не нашлось: это не ошибка, играть просто нечему.
+fn quiet_when_no_video(result: Result<String, String>) -> Result<String, String> {
+    match result {
+        Err(e) if e.starts_with("Не бачу YouTube") => Ok("У Spotify нічого не грає, вкладки YouTube не бачу".into()),
+        other => other,
+    }
 }
 
 /// Ставит на паузу и проверяет: состояние плеера обновляется с задержкой.
@@ -1725,6 +1733,14 @@ pub async fn run(skill: &Skill, incognito: bool) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn music_stop_without_video_is_not_an_error() {
+        let found = quiet_when_no_video(Err("Не бачу YouTube: вкладка з відео має бути активною у вікні браузера".into()));
+        assert_eq!(found, Ok("У Spotify нічого не грає, вкладки YouTube не бачу".to_string()));
+        assert_eq!(quiet_when_no_video(Err("немає дозволу".into())), Err("немає дозволу".to_string()));
+        assert_eq!(quiet_when_no_video(Ok("Пауза".into())), Ok("Пауза".to_string()));
+    }
 
     #[test]
     fn guess_runs_only_safe_skills() {

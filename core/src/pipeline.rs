@@ -1,5 +1,5 @@
 //! Хаб состояния и конвейер: событие → память/решение → очередь → LLM → TTS → оверлей/платформа.
-use crate::brain::guard::{claims_action, has_foreign_word, has_russian_letters, looks_like_injection, reply_problem, sanitize_input, GlobalCooldown};
+use crate::brain::guard::{claims_action, promises_action, has_foreign_word, has_russian_letters, looks_like_injection, reply_problem, sanitize_input, GlobalCooldown};
 use crate::brain::llm::Llm;
 use crate::brain::{persona, Brain, Command, Decision, Reply, ReplyJob};
 use crate::config::Config;
@@ -389,7 +389,9 @@ impl Engine {
                 // Только у локальной модели: она срывается на другие языки, а Gemini пишет термины латиницей по делу.
                 Some(r) if !had_tool && cfg.llm_provider == "ollama" && has_foreign_word(&r.text, &job.event.user) => Some("слово на другом языке"),
                 // Команду не распознали, навык не запускался: нельзя говорить «вимкнула» или «запустила».
-                Some(r) if (!had_tool || tool_error.is_some()) && job.event.platform == "control" && job.event.image.is_none() && claims_action(&r.text) => {
+                Some(r) if (!had_tool || tool_error.is_some()) && job.event.platform == "control" && job.event.image.is_none()
+                    && (claims_action(&r.text) || (crate::skills::may_be_command(&job.question) && promises_action(&r.text))) =>
+                {
                     invented_action = true;
                     Some("ти нічого не виконувала на комп'ютері, тож не кажи, що зробила. Чесно скажи, що не зрозуміла команду")
                 }
@@ -406,16 +408,20 @@ impl Engine {
         }
         if invented_action {
             // Причина из навыка точнее любых слов модели.
-            let text = tool_error.map_or("Цього я не зробила: не зрозуміла команду. Скажи ще раз, простіше.".to_string(), |e| format!("Н{}", e.trim_start_matches('н')));
+            let unknown = if self.hub.incognito() {
+                "Цього я не зробила: в інкогніто виконую лише точні команди. Наприклад: вимкни музику."
+            } else {
+                "Цього я не зробила: не зрозуміла команду. Скажи ще раз, простіше."
+            };
+            let text = tool_error.map_or(unknown.to_string(), |e| format!("Н{}", e.trim_start_matches('н')));
             return Some(Reply { text, emotion: Emotion::Neutral, outfit: None });
         }
         // Дважды брак: короткая отмашка лучше молчания, которое выглядит как зависание.
         Some(Reply { text: "Щось я збилась і не можу нормально відповісти. Спитай ще раз, трохи інакше.".into(), emotion: Emotion::Neutral, outfit: None })
     }
 
-    /// Придумывает текст сообщения. Он сразу уходит человеку, поэтому при сбое лучше не отправить ничего.
     /// Правила не поняли фразу: модель переводит её в команду из списка, а выполняет код.
-    /// В инкогнито слова в модель не отправляем, при любой неудаче остаётся обычный разговор.
+    /// В инкогнито разбор выключен, при любой неудаче остаётся обычный разговор.
     async fn guess_command(&self, job: &ReplyJob) -> Option<crate::skills::Skill> {
         if self.llm.name() == "mock" || self.hub.incognito() || job.injection || !crate::skills::may_be_command(&job.question) {
             return None;
@@ -427,6 +433,7 @@ impl Engine {
         Some(skill)
     }
 
+    /// Придумывает текст сообщения. Он сразу уходит человеку, поэтому при сбое лучше не отправить ничего.
     async fn compose(&self, about: &str, job: &ReplyJob) -> Option<String> {
         let raw = tokio::time::timeout(Duration::from_secs(30), self.llm.reply(&persona::compose_prompt(), &persona::compose_message(about), job)).await.ok()?.ok()?;
         persona::clean_composed(&raw)
