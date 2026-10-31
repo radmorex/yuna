@@ -16,7 +16,7 @@ async fn main() {
     }
     let brain = Brain::new(&cfg, Memory::load(cfg.memory_file.clone()));
     let engine = Engine::new(hub.clone(), brain, llm, tts);
-    hub.set_wake(pipeline::wake_on_start());
+    hub.set_wake(hub.cfg.pc_control && pipeline::wake_on_start());
 
     hub.log(&format!(
         "Юна запускається: джерела={:?} LLM={} TTS={} пам'ять={}",

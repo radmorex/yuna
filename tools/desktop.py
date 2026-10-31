@@ -110,6 +110,15 @@ def drop_recording():
 atexit.register(drop_recording)
 
 
+def pc_control():
+    """Разрешён ли доступ к ПК. Решает ядро, а без ответа считаем, что нет."""
+    try:
+        with urllib.request.urlopen(CORE + "/api/state", timeout=3) as r:
+            return json.load(r).get("pcControl") is True
+    except (OSError, ValueError):
+        return False
+
+
 class Api:
     def get_layout(self):
         return state
@@ -118,6 +127,8 @@ class Api:
         """Запись с микрофона по умолчанию во временный файл. Не дольше минуты."""
         if mic["proc"]:
             return {"ok": True}
+        if not pc_control():
+            return {"ok": False, "error": "увімкни PC_CONTROL=true у .env"}
         wake_pause(True)
         mic["dir"] = tempfile.mkdtemp(prefix="yuna-mic-")
         wav = os.path.join(mic["dir"], "mic.wav")

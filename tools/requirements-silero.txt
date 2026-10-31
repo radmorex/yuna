@@ -1,6 +1,6 @@
 # Silero TTS sidecar (tools/silero_server.py). Python 3.10–3.12.
 # На macOS arm64 колёса torch с PyPI уже CPU/MPS — CUDA не тянется.
 # На Linux для CPU-only добавь: --index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1
+torch==2.14.1
 numpy>=1.26,<2.2
 omegaconf>=2.3,<2.4

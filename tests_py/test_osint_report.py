@@ -82,6 +82,34 @@ class BatchTest(unittest.TestCase):
         self.assertIn("## c.com", full)
 
 
+class HostTest(unittest.TestCase):
+    def resolves_to(self, address):
+        return mock.patch.object(arsenal.socket, "getaddrinfo", return_value=[(2, 1, 6, "", (address, 0))])
+
+    def test_domain_pointing_inside_is_refused(self):
+        for address in ("127.0.0.1", "10.0.0.5", "192.168.1.1", "169.254.169.254", "::1", "fe80::1%en0"):
+            with self.resolves_to(address):
+                for tool, target in (("headers", "http://localtest.me:8787/health"), ("domain", "localtest.me"), ("wayback", "localtest.me"), ("page", "https://localtest.me/")):
+                    with self.assertRaises(arsenal.Refused, msg=f"{tool} {address}"):
+                        arsenal.check_target(tool, target)
+
+    def test_public_and_unresolved_pass(self):
+        with self.resolves_to("93.184.216.34"):
+            arsenal.check_target("headers", "https://example.com/")
+        with mock.patch.object(arsenal.socket, "getaddrinfo", side_effect=OSError):
+            arsenal.check_target("domain", "example.com")
+
+    def test_batch_refuses_only_the_inside_target(self):
+        def resolve(host, _):
+            return [(2, 1, 6, "", ("127.0.0.1" if host == "localtest.me" else "93.184.216.34", 0))]
+
+        with mock.patch.object(arsenal.socket, "getaddrinfo", resolve), mock.patch.object(arsenal, "BATCH_PAUSE", 0), \
+                mock.patch.object(arsenal, "run_osint", lambda tool, target: {"domain": target, "dns": {"NS": ["ns.host.net."]}}):
+            summary, text, _ = arsenal.run_batch(["example.com", "localtest.me"])
+        self.assertIn("1 із 2", summary)
+        self.assertIn("localtest.me: не вийшло", text)
+
+
 class FailureTest(unittest.TestCase):
     def test_real_reason_is_shown(self):
         self.assertNotIn("URLSCAN", arsenal.explain_failure("Ошибка: Нужен ключ VirusTotal", ""))

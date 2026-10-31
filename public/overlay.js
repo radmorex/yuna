@@ -258,7 +258,7 @@
     const pick = (a) => a[Math.floor(Math.random() * a.length)];
     let n = 0, viewers = 100;
     handle({
-      type: 'state', channel: 'twitch.tv/mira_cohost', viewers, outfit: 'hoodie', emotion: 'neutral', muted: false,
+      type: 'state', channel: 'twitch.tv/yuna_demo', viewers, outfit: 'hoodie', emotion: 'neutral', muted: false,
       history: [
         { type: 'chat', user: 'lunar_fox', text: 'добрий вечір, чат' },
         { type: 'chat', user: 'pixel_kot', text: 'юна, привіт!' },

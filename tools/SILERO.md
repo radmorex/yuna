@@ -20,7 +20,7 @@
 Нужны: Homebrew-`uv` (уже стоит) и ~1 ГБ на диске.
 
 ```bash
-cd ~/security-lab/mira-cohost
+cd yuna
 npm run silero   # первый раз: создаёт .venv-silero (Python 3.12), ставит torch/numpy (~400 МБ), затем запускает сайдкар
 ```
 

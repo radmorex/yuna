@@ -120,6 +120,7 @@ impl Hub {
             "listening": live.listening,
             "incognito": live.incognito,
             "wake": live.wake,
+            "pcControl": self.cfg.pc_control,
             "wakePaused": live.wake_paused,
             "speaking": now_ms() < self.speaking_until.load(Ordering::Relaxed),
             "awaitingConfirm": self.pending_send.lock().unwrap().as_ref().is_some_and(|p| now_ms() < p.2),

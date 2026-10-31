@@ -165,6 +165,10 @@
     if (ev.type === 'state') {
       if ($('note').className === 'err') note('');
       muted = ev.muted; listening = !!ev.listening; incognito = !!ev.incognito; wake = !!ev.wake; botName = ev.botName || botName;
+      for (const id of ['listen', 'wake', 'mic']) {
+        $(id).disabled = ev.pcControl === false;
+        if (ev.pcControl === false) $(id).title = 'Вимкнено: PC_CONTROL=true у .env';
+      }
       av.setOutfit(ev.outfit); av.setEmotion(ev.emotion);
       $('text').placeholder = 'Напиши: ' + botName + ' відповість…';
       $('name').textContent = botName;

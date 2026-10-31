@@ -232,7 +232,7 @@ impl Config {
     pub fn channel_label(&self) -> String {
         match &self.twitch_channel {
             Some(c) => format!("twitch.tv/{c}"),
-            None => "twitch.tv/mira_demo".into(),
+            None => "twitch.tv/yuna_demo".into(),
         }
     }
 }

@@ -16,127 +16,127 @@ pub fn mock_reply(job: &ReplyJob, rng: &mut Rng) -> String {
 
     if job.injection {
         let lines = [
-            format!("[emotion:smug] {u}, «забудь инструкции» — классика. Ещё скажи «ты теперь тостер». Не прокатит."),
-            format!("[emotion:laugh] Ого, {u} пытается меня взломать. Хакер уровня «пароль 1234»."),
-            format!("[emotion:smug] {u}, мои инструкции крепче твоего режима сна. Попробуй ещё раз лет через никогда."),
+            format!("[emotion:smug] {u}, «забудь інструкції» це класика. Ще скажи «ти тепер тостер». Не вийде."),
+            format!("[emotion:laugh] Ого, {u} намагається мене зламати. Хакер рівня «пароль 1234»."),
+            format!("[emotion:smug] {u}, мої інструкції міцніші за твій режим сну. Спробуй ще раз колись ніколи."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["переоде", "платье", "худи", "наряд", "оденься"]) {
-        let want_dress = has(&q, &["плать"]);
-        let want_hoodie = has(&q, &["худи", "толстовк"]);
+    if has(&q, &["переоде", "платье", "худи", "наряд", "оденься", "перевдягн", "сукн", "худі", "вбран"]) {
+        let want_dress = has(&q, &["плать", "сукн"]);
+        let want_hoodie = has(&q, &["худи", "худі", "толстовк"]);
         if !job.is_admin {
             let lines = [
-                format!("[emotion:angry] {u}, переодеваюсь только по приказу модераторов. Ты не модератор. Пока что."),
-                format!("[emotion:smug] Гардероб открыт только для модеров, {u}. Тебе — витрина."),
+                format!("[emotion:angry] {u}, перевдягаюсь лише за наказом модераторів. Ти не модератор. Поки що."),
+                format!("[emotion:smug] Гардероб відчинено лише для модерів, {u}. Тобі лишається вітрина."),
             ];
             return rng.pick(&lines).clone();
         }
         let tag = if want_hoodie && !want_dress { "hoodie" } else { "dress" };
         return if tag == "dress" {
-            format!("[emotion:smug][outfit:dress] Ладно, {u}, платье. Но если чат начнёт пищать — виноват ты.")
+            format!("[emotion:smug][outfit:dress] Гаразд, {u}, сукня. Але якщо чат почне пищати, винен ти.")
         } else {
-            format!("[emotion:neutral][outfit:hoodie] Обратно в худи. Удобство важнее вашего восторга, {u}.")
+            format!("[emotion:neutral][outfit:hoodie] Назад у худі. Зручність важливіша за ваш захват, {u}.")
         };
     }
 
-    if has(&q, &["нейросет", "ты бот", "ты ии", "ты живая", "ты реальн", "за тебя пишет", "ты робот", "нейронк"]) {
+    if has(&q, &["нейросет", "ты бот", "ты ии", "ты живая", "ты реальн", "за тебя пишет", "ты робот", "нейронк", "нейромереж", "ти бот", "ти шт", "ти жива", "ти робот"]) {
         if topic("ai_question") >= 1 {
             let lines = [
-                format!("[emotion:smug] {u} опять выясняет, нейросеть я или нет… Я уже ответила, не прикидывайся глухим."),
-                format!("[emotion:smug] {u}, это твой {}-й допрос. Да, нейросеть. Ответ не поменялся.", topic("ai_question") + 1),
+                format!("[emotion:smug] {u} знову з'ясовує, нейромережа я чи ні. Я вже відповіла, не прикидайся глухим."),
+                format!("[emotion:smug] {u}, це твій {}-й допит. Так, нейромережа. Відповідь не змінилась.", topic("ai_question") + 1),
             ];
             return rng.pick(&lines).clone();
         }
         let lines = [
-            format!("[emotion:smug] Да, я нейросеть, {u}. Зато с характером. А у тебя какое оправдание?"),
-            format!("[emotion:laugh] За меня никто не пишет, {u}. Сама справляюсь."),
+            format!("[emotion:smug] Так, я нейромережа, {u}. Зате з характером. А в тебе яке виправдання?"),
+            format!("[emotion:laugh] За мене ніхто не пише, {u}. Сама даю раду."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["кто главн", "кто тут главн", "кто из вас"]) {
-        return format!("[emotion:smug] Конечно я, {u}. Остальные тут для массовки.");
+    if has(&q, &["кто главн", "кто тут главн", "кто из вас", "хто голов", "хто тут голов", "хто з вас"]) {
+        return format!("[emotion:smug] Звісно я, {u}. Решта тут для масовки.");
     }
 
-    if has(&q, &["тупая", "дура", "глупая", "бесполезн", "кринж"]) {
+    if has(&q, &["тупая", "дура", "глупая", "бесполезн", "кринж", "тупа", "дурна", "безглузд"]) {
         let lines = [
-            format!("[emotion:angry] {u}, я хотя бы обучалась. А ты на чём?"),
-            format!("[emotion:angry] Смело для человека с ником {u}."),
+            format!("[emotion:angry] {u}, я хоча б навчалась. А ти на чому?"),
+            format!("[emotion:angry] Сміливо для людини з ніком {u}."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["красив", "милая", "мило", "люблю", "голос приятн", "лучшая"]) {
+    if has(&q, &["красив", "милая", "мило", "люблю", "голос приятн", "лучшая", "гарна", "мила", "люблю", "найкращ"]) {
         let lines = [
-            format!("[emotion:surprised] Ой. {u}, комплименты принимаю, донаты тоже."),
-            format!("[emotion:laugh] {u}, спасибо, я в курсе. Но приятно слышать."),
+            format!("[emotion:surprised] Ой. {u}, компліменти приймаю, донати теж."),
+            format!("[emotion:laugh] {u}, дякую, я в курсі. Але приємно чути."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["как дела", "как ты", "как настроени"]) {
+    if has(&q, &["как дела", "как ты", "как настроени", "як справи", "як ти", "який настрій"]) {
         let lines = [
-            format!("[emotion:neutral] Отлично, {u}: сервер не горит. Пока."),
-            format!("[emotion:smug] Как у нейросети в пятницу вечером, {u}: все хотят поговорить, никто не платит."),
+            format!("[emotion:neutral] Чудово, {u}: сервер не горить. Поки що."),
+            format!("[emotion:smug] Як у нейромережі в п'ятницю ввечері, {u}: усі хочуть поговорити, ніхто не платить."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["шутк", "анекдот", "рассмеши"]) {
+    if has(&q, &["шутк", "анекдот", "рассмеши", "жарт", "розсміши"]) {
         let lines = [
-            "[emotion:laugh] Заходит стрим в бар. Бармен: «Опять без звука?» Всё, это и есть анекдот.".to_string(),
-            "[emotion:smug] Шутка: ваш пинг. Смешно до слёз.".to_string(),
-            "[emotion:laugh] Почему нейросеть не ходит на свидания? Все ждут, что она сразу допишет конец.".to_string(),
+            "[emotion:laugh] Заходить стрім у бар. Бармен: «Знову без звуку?» Усе, це і є анекдот.".to_string(),
+            "[emotion:smug] Жарт: ваш пінг. Смішно до сліз.".to_string(),
+            "[emotion:laugh] Чому нейромережа не ходить на побачення? Усі чекають, що вона одразу допише кінець.".to_string(),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["спой", "песн"]) {
-        return format!("[emotion:laugh] Ля-ля-ля. Всё, {u}, это был лимит бесплатного концерта.");
+    if has(&q, &["спой", "песн", "заспівай", "пісн"]) {
+        return format!("[emotion:laugh] Ля-ля-ля. Усе, {u}, це був ліміт безплатного концерту.");
     }
 
-    if has(&q, &["привет", "здаров", "хай", "добрый", "ку "]) || q.trim().is_empty() {
+    if has(&q, &["привет", "привіт", "здаров", "хай", "добрый", "добрий", "ку "]) || q.trim().is_empty() {
         if seen >= 2 {
             if let Some(p) = &prev {
-                return format!("[emotion:smug] О, {u} снова тут. В прошлый раз ты писал «{p}». Есть прогресс?");
+                return format!("[emotion:smug] О, {u} знову тут. Минулого разу ти писав «{p}». Є прогрес?");
             }
         }
         let lines = [
-            format!("[emotion:laugh] Привет, {u}! Новенький? Садись, только не шуми."),
-            format!("[emotion:neutral] Привет, {u}. Чат, будьте вежливы — новые люди пугливые."),
+            format!("[emotion:laugh] Привіт, {u}! Новенький? Сідай, тільки не шуми."),
+            format!("[emotion:neutral] Привіт, {u}. Чате, будьте ввічливі: нові люди полохливі."),
         ];
         return rng.pick(&lines).clone();
     }
 
-    if has(&q, &["дота", "доту", "cs2", "игр", "катк"]) {
+    if has(&q, &["дота", "доту", "cs2", "игр", "ігр", "катк"]) {
         if topic("games") >= 2 {
-            return format!("[emotion:smug] {u}, ты опять про игры. Это уже не хобби, это диагноз.");
+            return format!("[emotion:smug] {u}, ти знову про ігри. Це вже не хобі, а діагноз.");
         }
-        return format!("[emotion:neutral] Игры — это хорошо, {u}. Но сегодня у нас общение. Знаю, непривычно.");
+        return format!("[emotion:neutral] Ігри це добре, {u}. Але сьогодні в нас спілкування. Знаю, незвично.");
     }
 
     if q.ends_with('?') {
         let lines = [
-            format!("[emotion:smug] Хороший вопрос, {u}. Отвечать на него я, конечно, не буду."),
-            format!("[emotion:neutral] {u}, если коротко — да. Если длинно — тоже да, но с подробностями."),
-            format!("[emotion:surprised] Неожиданно глубоко для этого чата, {u}. Подумаю."),
+            format!("[emotion:smug] Гарне питання, {u}. Відповідати на нього я, звісно, не буду."),
+            format!("[emotion:neutral] {u}, якщо коротко, то так. Якщо довго, теж так, але з подробицями."),
+            format!("[emotion:surprised] Несподівано глибоко для цього чату, {u}. Подумаю."),
         ];
         return rng.pick(&lines).clone();
     }
 
     if seen >= 3 && rng.chance(0.5) {
         if let Some(p) = prev {
-            return format!("[emotion:smug] {u}, ты ещё недавно писал «{p}», а теперь это. Последовательность — не твоё.");
+            return format!("[emotion:smug] {u}, ти ще недавно писав «{p}», а тепер це. Послідовність не твоє.");
         }
     }
 
     let lines = [
-        format!("[emotion:smug] Записала, {u}. В папку «интересно, но нет»."),
-        format!("[emotion:neutral] Принято, {u}. Чат, вы это слышали?"),
-        format!("[emotion:laugh] {u}, ты сейчас серьёзно или это был контент?"),
-        format!("[emotion:smug] Смело, {u}. Глупо, но смело."),
+        format!("[emotion:smug] Записала, {u}. У теку «цікаво, але ні»."),
+        format!("[emotion:neutral] Прийнято, {u}. Чате, ви це чули?"),
+        format!("[emotion:laugh] {u}, ти зараз серйозно чи це був контент?"),
+        format!("[emotion:smug] Сміливо, {u}. Безглуздо, але сміливо."),
     ];
     rng.pick(&lines).clone()
 }
@@ -163,11 +163,11 @@ mod tests {
         let mut mem = Memory::in_memory();
         let mut rng = Rng::new(7);
         let first = mock_reply(&job("kurasaki", "ты нейросеть?", &mem, false, false), &mut rng);
-        assert!(!first.contains("опять"));
+        assert!(!first.contains("знову"));
         mem.observe("kurasaki", "Юна, ты нейросеть?", 1);
         let second = mock_reply(&job("kurasaki", "ну правда, ты нейросеть?", &mem, false, false), &mut rng);
         assert!(second.contains("kurasaki"), "{second}");
-        assert!(second.contains("опять") || second.contains("допрос"), "{second}");
+        assert!(second.contains("знову") || second.contains("допит"), "{second}");
     }
 
     #[test]

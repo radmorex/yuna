@@ -10,6 +10,7 @@ import ipaddress
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -81,6 +82,27 @@ def check_url(value):
         if "локальна" in str(e):
             raise
         check_domain(host)
+
+
+def check_host(host):
+    """Домен может указывать на этот компьютер или внутреннюю сеть. Нет ответа DNS: сам инструмент сообщит об ошибке."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return
+    for info in infos:
+        check_ip(info[4][0].split("%")[0])
+
+
+def check_target(tool, target):
+    """Куда на самом деле пойдёт запрос. Отдельно от validate: здесь уже нужна сеть."""
+    kind = OSINT[tool][0] if tool in OSINT else WEB_TOOLS[tool][0] if tool in WEB_TOOLS else None
+    if kind == "domain":
+        check_host(target)
+    elif kind == "url" or (kind == "site" and "://" in target):
+        check_host(urlsplit(target).hostname)
+    elif kind == "site":
+        check_host(target)
 
 
 def validate(tool, target):
@@ -235,6 +257,8 @@ def run_batch(targets):
         if number:
             time.sleep(BATCH_PAUSE)
         try:
+            if kind_of(target) == "domain":
+                check_host(target)
             summary, text = osint_report.render(kind_of(target), run_osint(kind_of(target), target))
         except (Refused, subprocess.TimeoutExpired, OSError) as e:
             summary, text = f"{target}: не вийшло. {e}".strip(), ""
@@ -291,6 +315,7 @@ def main():
             return
         if mode == "incognito":
             require_vpn()
+        check_target(tool, target)
         if tool == "batch":
             title = REPORT_TOOLS[tool]
             summary, text, full = run_batch(batch_targets(target))
@@ -311,7 +336,9 @@ def main():
     except OSError:
         print(json.dumps({"ok": False, "title": "Помилка", "text": "Немає зв'язку або сайт не відповів"}, ensure_ascii=False))
     except Exception as e:
-        print(json.dumps({"ok": False, "title": "Помилка", "text": type(e).__name__}, ensure_ascii=False))
+        # У инструментов поиска своя ошибка с понятным текстом, остальное лишь по типу: в тексте могут быть пути.
+        text = str(e) if type(e).__name__ == "ToolError" else type(e).__name__
+        print(json.dumps({"ok": False, "title": "Помилка", "text": text}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

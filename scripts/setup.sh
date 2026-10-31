@@ -7,7 +7,9 @@ command -v uv >/dev/null || { echo "Потрібен uv: brew install uv"; exit 
 # Інструменти OSINT: окреме оточення всередині vendor/osint-kit.
 tools() {
   [ -x vendor/osint-kit/.venv/bin/python ] || uv venv vendor/osint-kit/.venv --python 3.12
-  uv pip install --python vendor/osint-kit/.venv/bin/python -e vendor/osint-kit
+  # Фиксированные версии: новые сборки уже ломали установку.
+  uv pip install --python vendor/osint-kit/.venv/bin/python -r vendor/osint-kit/requirements.lock
+  uv pip install --python vendor/osint-kit/.venv/bin/python --no-deps -e vendor/osint-kit
   # Своє сховище справ, щоб не конфліктувати з окремо встановленим osint-kit.
   if [ ! -f vendor/osint-kit/config.toml ]; then
     mkdir -p "$HOME/Library/Application Support/yuna"

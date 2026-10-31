@@ -310,6 +310,9 @@ async fn api_listen(State(e): St, headers: HeaderMap, Json(r): Json<ListenReq>) 
     if let Err(resp) = check_control(&e, &headers) {
         return resp;
     }
+    if !e.hub.cfg.pc_control {
+        return (StatusCode::FORBIDDEN, "PC_CONTROL вимкнено").into_response();
+    }
     e.hub.set_listening(r.enabled);
     if let Some(msg) = r.error {
         e.hub.emit(json!({"type": "listenError", "message": sanitize_input(&msg, 200)}));
@@ -329,6 +332,9 @@ async fn api_wake(State(e): St, headers: HeaderMap, Json(r): Json<WakeReq>) -> R
     if let Err(resp) = check_control(&e, &headers) {
         return resp;
     }
+    if !e.hub.cfg.pc_control {
+        return (StatusCode::FORBIDDEN, "PC_CONTROL вимкнено").into_response();
+    }
     if let Some(on) = r.enabled {
         e.hub.set_wake(on);
         crate::pipeline::save_wake(on);
@@ -347,6 +353,9 @@ struct WakeCommandReq {
 async fn api_wake_command(State(e): St, headers: HeaderMap, Json(r): Json<WakeCommandReq>) -> Response {
     if let Err(resp) = check_control(&e, &headers) {
         return resp;
+    }
+    if !e.hub.cfg.pc_control {
+        return (StatusCode::FORBIDDEN, "PC_CONTROL вимкнено").into_response();
     }
     let text = sanitize_input(&r.text, 400);
     if text.is_empty() {
@@ -371,6 +380,9 @@ struct TranscriptReq {
 async fn api_transcript(State(e): St, headers: HeaderMap, Json(r): Json<TranscriptReq>) -> Response {
     if let Err(resp) = check_control(&e, &headers) {
         return resp;
+    }
+    if !e.hub.cfg.pc_control {
+        return (StatusCode::FORBIDDEN, "PC_CONTROL вимкнено").into_response();
     }
     let text = sanitize_input(&r.text, 1000);
     if text.is_empty() || !e.hub.add_heard(&text, crate::util::now_ms()) {

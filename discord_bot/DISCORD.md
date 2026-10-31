@@ -55,7 +55,7 @@ BRIDGE_TOKEN=длинная_случайная_строка
 ## 5. Установка и запуск
 
 ```bash
-cd ~/security-lab/mira-cohost
+cd yuna
 uv venv .venv-py --python 3.12                      # один раз
 VIRTUAL_ENV=.venv-py uv pip install -r discord_bot/requirements.txt
 
